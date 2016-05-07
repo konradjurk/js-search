@@ -264,7 +264,7 @@ var JsSearch;
             this.sanitizer_ = new JsSearch.LowerCaseSanitizer();
             this.tokenizer_ = new JsSearch.SimpleTokenizer();
             this.documents_ = [];
-            this.searchableFieldsMap_ = {};
+            this.searchableFields = [];
         }
         Object.defineProperty(Search.prototype, "indexStrategy", {
             get: function () {
@@ -323,10 +323,10 @@ var JsSearch;
         };
         Search.prototype.addDocuments = function (documents) {
             this.documents_.push.apply(this.documents_, documents);
-            this.indexDocuments_(documents, Object.keys(this.searchableFieldsMap_));
+            this.indexDocuments_(documents, this.searchableFields);
         };
         Search.prototype.addIndex = function (field) {
-            this.searchableFieldsMap_[field] = true;
+            this.searchableFields.push(field);
             this.indexDocuments_(this.documents_, [field]);
         };
         Search.prototype.search = function (query) {
@@ -339,8 +339,14 @@ var JsSearch;
                 var document = documents[di];
                 var uid = document[this.uidFieldName_];
                 for (var sfi = 0, numSearchableFields = searchableFields.length; sfi < numSearchableFields; sfi++) {
+                    var fieldValue;
                     var searchableField = searchableFields[sfi];
-                    var fieldValue = this.getValue(document, searchableField);
+                    if (searchableField instanceof Array) {
+                        fieldValue = Search.getNestedFieldValue(document, searchableField);
+                    }
+                    else {
+                        fieldValue = document[searchableField];
+                    }
                     if (fieldValue && typeof fieldValue !== 'string' && fieldValue.toString) {
                         fieldValue = fieldValue.toString();
                     }
@@ -358,18 +364,14 @@ var JsSearch;
                 }
             }
         };
-        Search.prototype.getValue = function (obj, path) {
-            path = path || '';
+        Search.getNestedFieldValue = function (obj, path) {
+            path = path || [];
             obj = obj || {};
-            if (path.indexOf('.') < 0) {
-                return obj[path];
-            }
-            var pathElements = path.split('.');
             var value = obj;
-            for (var i = 0; i < pathElements.length; i++) {
-                value = value[pathElements[i]];
+            for (var i = 0; i < path.length; i++) {
+                value = value[path[i]];
                 if (!value) {
-                    return obj[path];
+                    return null;
                 }
             }
             return value;
