@@ -161,6 +161,11 @@ module JsSearch {
             fieldValue = fieldValue.toString();
           }
 
+
+          if (fieldValue && typeof fieldValue !== 'string' && fieldValue.toString) {
+            fieldValue = fieldValue.toString();
+          }
+
           if (typeof fieldValue === 'string') {
             var fieldTokens:Array<string> = this.tokenizer_.tokenize(this.sanitizer_.sanitize(fieldValue));
 
